@@ -1,0 +1,29 @@
+@model MyDiaryApp.Models.DiaryEditModel
+@{
+    ViewData["Title"] = "Создать запись";
+}
+
+<h2>Создать запись</h2>
+
+<form asp-action="CreateRow" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="alert alert-danger d-block mt-2" role="alert"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Text" class="form-label"></label>
+        <textarea asp-for="Text" class="form-control" rows="8"></textarea>
+        <span asp-validation-for="Text" class="alert alert-danger d-block mt-2" role="alert"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a asp-action="ListRows" asp-controller="Diary" class="btn btn-secondary ms-2">Отмена</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,132 @@
+using Microsoft.AspNetCore.Mvc;
+using MyDiaryApp.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace MyDiaryApp.Controllers
+{
+    public class DiaryController : Controller
+    {
+        // Временное хранилище в памяти
+        private static readonly Dictionary<int, DiaryItem> _db = new();
+        private static int _nextId = 1;
+        private static readonly object _lock = new();
+
+        // GET: /Diary/ListRows
+        [HttpGet]
+        public IActionResult ListRows()
+        {
+            // Передаём список по возрастанию Id (или по дате)
+            var list = _db.Values.OrderByDescending(x => x.CreatedAt).ToList();
+            return View(list);
+        }
+
+        // GET: /Diary/GetRow/5
+        [HttpGet]
+        public IActionResult GetRow(int id)
+        {
+            if (!_db.TryGetValue(id, out var item))
+            {
+                TempData["Error"] = $"Записи с идентификатором '{id}' не существует!";
+                return RedirectToAction(nameof(ListRows));
+            }
+
+            return View(item);
+        }
+
+        // GET: /Diary/CreateRow
+        [HttpGet]
+        public IActionResult CreateRow()
+        {
+            return View(new DiaryEditModel());
+        }
+
+        // POST: /Diary/CreateRow
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult CreateRow(DiaryEditModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                // Остаёмся на форме и показываем ошибки
+                return View(model);
+            }
+
+            var now = DateTime.Now;
+            var item = new DiaryItem
+            {
+                Id = 0, // назначим ниже
+                Title = string.IsNullOrWhiteSpace(model.Title) ? null : model.Title,
+                Text = model.Text,
+                CreatedAt = now
+            };
+
+            int id;
+            lock (_lock)
+            {
+                id = _nextId++;
+                item.Id = id;
+                _db[id] = item;
+            }
+
+            var titleForMessage = item.Title ?? item.CreatedAt.ToString("dd.MM.yyyy HH:mm");
+            TempData["Success"] = $"Запись {titleForMessage} сохранена.";
+            return RedirectToAction(nameof(ListRows));
+        }
+
+        // GET: /Diary/EditRow/5
+        [HttpGet]
+        public IActionResult EditRow(int id)
+        {
+            if (!_db.TryGetValue(id, out var item))
+            {
+                TempData["Error"] = $"Записи с идентификатором '{id}' не существует!";
+                return RedirectToAction(nameof(ListRows));
+            }
+
+            var model = new DiaryEditModel
+            {
+                Id = item.Id,
+                Title = item.Title,
+                Text = item.Text
+            };
+
+            return View(model);
+        }
+
+        // POST: /Diary/EditRow/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult EditRow(int id, DiaryEditModel model)
+        {
+            if (id != model.Id)
+            {
+                // Неправильный вызов — защитим от несоответствий
+                TempData["Error"] = "Несоответствие идентификаторов.";
+                return RedirectToAction(nameof(ListRows));
+            }
+
+            if (!_db.TryGetValue(id, out var existing))
+            {
+                TempData["Error"] = $"Записи с идентификатором '{id}' не существует!";
+                return RedirectToAction(nameof(ListRows));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Остаёмся на форме и показываем ошибки
+                return View(model);
+            }
+
+            // Изменяем поля (CreatedAt не меняется)
+            existing.Title = string.IsNullOrWhiteSpace(model.Title) ? null : model.Title;
+            existing.Text = model.Text;
+
+            var titleForMessage = existing.Title ?? existing.CreatedAt.ToString("dd.MM.yyyy HH:mm");
+            TempData["Success"] = $"Запись отредактирована {titleForMessage}!";
+
+            return RedirectToAction(nameof(ListRows));
+        }
+    }
+}

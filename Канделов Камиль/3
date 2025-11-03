@@ -1,0 +1,17 @@
+@model MyDiaryApp.Models.DiaryItem
+@{
+    ViewData["Title"] = Model.Title ?? Model.CreatedAt.ToString("dd.MM.yyyy HH:mm");
+}
+
+<h2>@(Model.Title ?? Model.CreatedAt.ToString("dd.MM.yyyy HH:mm"))</h2>
+
+<p class="text-muted">Дата создания: @Model.CreatedAt.ToString("dd.MM.yyyy HH:mm")</p>
+
+<div class="mb-4">
+    <pre style="white-space:pre-wrap;">@Model.Text</pre>
+</div>
+
+<p>
+    <a asp-action="EditRow" asp-controller="Diary" asp-route-id="@Model.Id" class="btn btn-primary">Редактировать</a>
+    <a asp-action="ListRows" asp-controller="Diary" class="btn btn-secondary ms-2">Назад к списку</a>
+</p>
